@@ -1,0 +1,25 @@
+{
+  "name": "github-profilemd-generater",
+  "version": "0.0.1",
+  "description": "Github-profilemd-generater is a tool work on github action to scan and analyze your github account, then generated as a README.md file.",
+  "main": "src/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kwangsing3/github-profilemd-Generater.git"
+  },
+  "author": "kwangsing3",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/kwangsing3/github-profilemd-Generater/issues"
+  },
+  "homepage": "https://github.com/kwangsing3/github-profilemd-Generater#readme",
+  "dependencies": {
+    "@actions/core": "^1.4.0",
+    "@octokit/core": "^3.5.1",
+    "@vercel/ncc": "^0.29.0",
+    "axios": "^0.21.1"
+  }
+}
