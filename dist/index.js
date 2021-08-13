@@ -3098,6 +3098,128 @@ module.exports.wrap = wrap;
 
 /***/ }),
 
+/***/ 8797:
+/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
+
+const rest = __nccwpck_require__(8189);
+
+
+const fetcher = (token, variables) => {
+    // contain private repo need token permission
+    return rest.POST(
+        {
+            Authorization: `bearer ${token}`,
+            'User-Agent':'kwangsing3/github-profilemd-Generater',
+        },
+        {
+            query: `
+      query ReposPerLanguage($login: String!,$endCursor: String) {
+        user(login: $login) {
+          repositories(isFork: false, first: 100, after: $endCursor,ownerAffiliations: OWNER) {
+            nodes {
+              primaryLanguage {
+                name
+                color
+              }
+            }
+            pageInfo{
+                endCursor
+                hasNextPage
+            }
+          }
+        }
+      }
+      `,
+            variables,
+        }
+    );
+};
+
+async function GetPerLanguage(username = ""){
+    let hasNextPage = true;
+    let cursor = null;
+    const languageMap = new Map();
+    const nodes = [];
+
+    while (hasNextPage) {
+        const res = await fetcher(process.env.GITHUB_TOKEN, {
+            login: username,
+            endCursor: cursor,
+        });
+
+        if (res.data.errors) {
+            throw Error(res.data.errors[0].message || 'GetRepoLanguage fail');
+        }
+        cursor = res.data.data.user.repositories.pageInfo.endCursor;
+        hasNextPage = res.data.data.user.repositories.pageInfo.hasNextPage;
+        nodes.push(...res.data.data.user.repositories.nodes);
+    }
+
+    nodes.forEach((node) => {
+        if (node.primaryLanguage) {
+            const langName = node.primaryLanguage.name;
+            if (languageMap.has(langName)) {
+                const lang = languageMap.get(langName);
+                lang.count += 1;
+            } else {
+                languageMap.set(langName, {
+                    count: 1,
+                    color: node.primaryLanguage.color
+                        ? node.primaryLanguage.color
+                        : '#586e75',
+                });
+            }
+        }
+    });
+
+    let langData= [];
+    // make array
+    for (const [key, value] of languageMap) {
+        langData.push({
+            name: key,
+            value: value.count,
+            color: value.color,
+        });
+    }
+
+    return langData;
+}
+
+module.exports = GetPerLanguage;
+
+/***/ }),
+
+/***/ 8276:
+/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
+
+const GetPerLanguage = __nccwpck_require__(8797);
+const { GetCurrentTime } = __nccwpck_require__(4767);
+
+
+class Account{
+    constructor(name){
+        this.username = name;
+        this.Theme = 0;
+    };
+    SetTheme = (index) => {
+        this.Theme = index;
+    };
+    GetTheme = () => {
+        return this.Theme;
+    };
+    GetContent(){
+        return this.perLanguage;
+    };
+    async GenerateCard(){
+        this.perLanguage = await GetPerLanguage(this.username);
+        console.log("GenerateCard done");
+    };
+}
+
+module.exports = Account;
+
+/***/ }),
+
 /***/ 1845:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
@@ -3123,11 +3245,11 @@ const execCmd = (cmd, args = []) => {
         });
         app.on('error', reject);
     }).catch((error)=>{
-        console.error(error.message);
+        console.log(`cmd Failed: `+ String(error));
     })
 }
 
-async function CommandANDPush(){
+async function CommandANDPush(msg = ""){
     await execCmd('git', [
         'config',
         '--global',
@@ -3141,11 +3263,39 @@ async function CommandANDPush(){
         'github-profilemd-Generater[bot]',
     ]);
     await execCmd('git', ['add','-A']);
-    await execCmd('git', ['commit', '-m', ' github-profilemd-Generater[bot] Commited: '+ uti_time.GetCurrentTime()] );
+
+    if (msg == ""){
+        msg = 'github-profilemd-Generater[bot] Commited: '+ uti_time.GetCurrentTime();
+    }
+    await execCmd('git', ['commit', '-m', msg] );
+    await execCmd('git', ['remote','rm','origin']);
+    await execCmd('git', ['remote','add','origin',`https://github.com/${process.env.USERNAME }/${process.env.GITHUB_REPO_NAME}.git`]);
+
+
+
     await execCmd('git', ['push']);
 };
 
 module.exports.CommandANDPush = CommandANDPush;
+
+const readline = __nccwpck_require__(1058);
+
+const readLineAsync = () => {
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output : process.stdout,
+  });
+  
+  return new Promise((resolve) => {
+    rl.prompt();
+    rl.on('line', (line) => {
+      rl.close();
+      resolve(line);
+    });
+  });
+};
+
+module.exports.readLineAsync = readLineAsync;
 
 /***/ }),
 
@@ -3154,26 +3304,58 @@ module.exports.CommandANDPush = CommandANDPush;
 
 //- File System write and read-//
 const fs = __nccwpck_require__(5747);
+const path = __nccwpck_require__(5622);
 
-
-async function WriteFile(path = "" , content , SucessCallback, FailedCallback) {
+async function WriteFile(targetpath = "" , content = "" , SucessCallback, FailedCallback) {
     return new Promise((resolve,reject) =>{
-        fs.writeFile(path, content, function (err) {
+        fs.promises.mkdir(path.dirname(targetpath), {recursive: true}).then(
+            ()=>{
+                fs.writeFile(targetpath, content, function (err) {
+                    if (err) 
+                        reject(FailedCallback(err));
+                    resolve(SucessCallback());
+                })
+            }
+        );
+    }).catch((error)=>{
+        console.error(error);
+    });
+}
+
+
+async function ClearFolder(path = "" , SucessCallback, FailedCallback) {
+    return new Promise((resolve,reject) =>{
+        fs.rmdir(path,{ recursive: true }, function (err) {
             if (err) 
-                reject(FailedCallback());
+                reject(FailedCallback(err));
             resolve(SucessCallback());
         });
-    }).catch((error)=>{
-        console.error(error.message);
+    }).catch(()=>{
+        console.error("Clear unexpected failed");
+    });
+}
+
+async function CopyFile(pathA = "" , pathB = "" ,SucessCallback, FailedCallback) {
+    return new Promise((resolve,reject) =>{
+        fs.promises.mkdir(path.dirname(pathB), {recursive: true}).then(
+            ()=>{
+                fs.copyFile(pathA, pathB, function (err){
+                    if (err) 
+                        reject(FailedCallback(err));
+                    resolve(SucessCallback());
+                });
+            }
+        );
+    }).catch(()=>{
+        console.error("Copy unexpected failed");
     });
 }
 
 
 
-
-
-
 module.exports.WriteFile = WriteFile;
+module.exports.ClearFolder = ClearFolder;
+module.exports.CopyFile = CopyFile
 
 /***/ }),
 
@@ -3184,16 +3366,26 @@ module.exports.WriteFile = WriteFile;
 
 const axios = __nccwpck_require__(893);
 //https://api.github.com/graphql
-async function GET(url, header){
-    return axios({
-        url: url,
-        method: 'get',
-        headers: header,
-    });
+function GET(url, inputheader = null){
+    let header = {};
+    if (inputheader == null || inputheader == ''){
+        header = {
+            'User-Agent': 'kwangsing3/github-profilemd-Generater',
+            'Referer':'https://github.com/kwangsing3/github-profilemd-Generater',
+        };
+    }else
+        header = inputheader;
+
+        return axios({
+            url: 'https://api.github.com/graphql',
+            method: 'get',
+            headers: header,
+            data: data,
+        });
 }
-async function POST(url, header, data){
+function POST(header, data){
     return axios({
-        url: url,
+        url: 'https://api.github.com/graphql',
         method: 'post',
         headers: header,
         data: data,
@@ -3225,7 +3417,7 @@ function GetCurrentTime() {
     let hour = date_ob.getUTCHours();
     let minu = date_ob.getUTCMinutes();
     let sec = date_ob.getUTCSeconds();
-    return "UTF- "+ year + "-" + month + "-" + date + " " + hour +":" + minu +":" + sec;
+    return "UTC- "+ year + "-" + month + "-" + date + " " + hour +":" + minu +":" + sec;
 }
 
 module.exports.GetCurrentTime = GetCurrentTime;
@@ -3304,6 +3496,14 @@ module.exports = require("path");
 
 /***/ }),
 
+/***/ 1058:
+/***/ ((module) => {
+
+"use strict";
+module.exports = require("readline");
+
+/***/ }),
+
 /***/ 2413:
 /***/ ((module) => {
 
@@ -3373,51 +3573,150 @@ const core = __nccwpck_require__(115);
 const uti_cli  = __nccwpck_require__(1845);
 const uti_time = __nccwpck_require__(4767);
 const uti_fs = __nccwpck_require__(2246);
-const rest = __nccwpck_require__(8189);
+const path = __nccwpck_require__(5622);
+const Account = __nccwpck_require__(8276);
+
 
 
 const main = async()=>{
-    console.warn("Start Generate...");
-    var GITHUB_REPO_NAME = "";
-    let USERNAME         = "";
+    let GITHUB_REPO_NAME = process.env.GITHUB_REPO_NAME = core.getInput('GITHUB_REPO_NAME');
+    let USERNAME         = process.env.USERNAME = core.getInput('USERNAME');
     let isGithubAction = false;
-    // Entry reroute
-    /*
-        rest.GET("https://www.google.com")
-            .then((res)=>{
-                console.log(res.data);
-            })
-    */
-    if (process.argv.length == 2) {
-        try {
-            USERNAME = core.getInput('USERNAME');
-            GITHUB_REPO_NAME = core.getInput('GITHUB_REPO_NAME');
-            isGithubAction = true;
-        } catch (error) {
-            throw Error(error.message);
-        }
+
+    //Dev args
+    if(process.argv.length == 4){
+        USERNAME = process.argv[2];
+        GITHUB_REPO_NAME = process.argv[3];
     }
 
-   
-    // Generate
-    let currentTime = uti_time.GetCurrentTime();
-    let content =`cache: `+ currentTime
-    await uti_fs.WriteFile('README.md',content,()=>{
-        console.log('Generated readme...');
+
+    // Entry reroute
+    if (GITHUB_REPO_NAME != "" && USERNAME != "") {
+        isGithubAction = true;
+    }
+
+    /* 1. launch from local. */
+    if (USERNAME == "" && !isGithubAction){
+        core.info("【---Launch Without Username---】");
+        core.info("Enter Github Account (username): ");
+        USERNAME = await uti_cli.readLineAsync();
+    }
+    /* 2. launch from Github Action */
+    if (isGithubAction){
+        if(GITHUB_REPO_NAME != USERNAME){
+            // Rewrite action.yml to cancel schedule trigger.
+            core.info("【---Action with dev README---】");
+            let paths = path.join('./.github/workflows');
+            await uti_fs.ClearFolder(paths,()=>{
+                core.info('Clear action.yml');
+            },(err)=>{
+                core.setFailed(`Clear Failed...: ${err}`)
+            });
+           /* let conts = "# Rewrited by github-profilemd-Generater[bot].";
+            await uti_fs.WriteFile('./.github/workflows/action.yml',conts,()=>{
+                core.info('Rewrite action.yml...');
+            },(err)=>{
+                core.setFailed(`Rewrite Failed...: ${err}`)
+            });*/
+        }else if(GITHUB_REPO_NAME == USERNAME){
+            // Rewrite action.yml to launch schedule trigger.
+            core.info("【---Action with deploy README---】");
+            await uti_fs.WriteFile('./.github/workflows/action.yml',defaultActionYML,()=>{
+                core.info('Copy action.yml...');
+            },(err)=>{
+                core.setFailed(`Copy Failed...: ${err}`)
+            });
+        }
+    }
+    if(USERNAME.includes('@')){
+        let tmp_name = "";
+        for(let str = 0; str< USERNAME.length;str++){
+            if (USERNAME[str] == "@")
+                break;
+            tmp_name += USERNAME[str];
+        }
+        USERNAME = tmp_name;
+    }
+    core.info(`[bot]: Generated with-> ${USERNAME}`);
+    if(USERNAME == "" || process.env.GITHUB_TOKEN == ''){
+        core.setFailed("Unexpected Failed, Please leave your issue at:  https://github.com/kwangsing3/github-profilemd-Generater/issues")
+        process.exit(0);
+    }
+
+    // Generate cards
+    core.info("Start Generate...");
+    let account = new Account(USERNAME);
+    account.SetTheme(0);
+    try{
+        await account.GenerateCard();
+    }catch(error){
+        core.setFailed(error);
+    }
+
+    // Write to File
+    let content = account.GetContent();
+    core.info( JSON.stringify(content));
+    let tarPath = (isGithubAction && GITHUB_REPO_NAME==USERNAME)||true? "README.md":'./output/README.md';
+    await uti_fs.WriteFile(tarPath , JSON.stringify(content) ,()=>{
+        core.info("[bot]: Generated "+ tarPath);
     },()=>{
-        console.error("Generated Failed...")
+        core.setFailed("[bot]: Generated Failed...")
     });
 
     // Commit
-    await uti_cli.CommandANDPush()
+    await uti_cli.CommandANDPush('github-profilemd-Generater[bot] Commited: '+ uti_time.GetCurrentTime())
     .then(()=>{
-        console.log("Git push Successful!...");
+        core.info("[bot]: Git push done!...");
     }).catch(()=>{
-        
-        console.error("Git push Failed...")
+        core.setFailed("[bot]: Git push Failed...")
     });
 }
 main();
+
+
+
+var defaultActionYML = `
+
+# This is a basic workflow to help you get started with Actions
+
+name:  Schedule Run
+
+# Controls when the workflow will run
+on:
+  schedule: # execute every 24 hours
+    - cron: '* */24 * * *'
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+    
+  workflow_dispatch:
+  # Allows you to run this workflow manually from the Actions tab
+
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  # This workflow contains a single job called "build"
+  build:
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
+
+    name: generate
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v2
+      - uses: kwangsing3/github-profilemd-Generater@main
+        env: # default use \${{ secrets.GITHUB_TOKEN }}, you can change to your personal access token
+          GITHUB_TOKEN: \${{ secrets.MY_GITHUB_TOKEN }}
+        with:
+          USERNAME: \${{ github.repository_owner }}
+          GITHUB_REPO_NAME: \${{ github.event.repository.name }} 
+      # Runs a single command using the runners shell
+      - name: Run a one-line script
+        run: echo Action done
+
+`;
 })();
 
 module.exports = __webpack_exports__;
