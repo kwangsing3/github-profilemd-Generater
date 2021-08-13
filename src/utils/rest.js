@@ -2,16 +2,26 @@
 
 const axios = require('axios');
 //https://api.github.com/graphql
-async function GET(url, header){
-    return axios({
-        url: url,
-        method: 'get',
-        headers: header,
-    });
+function GET(url, inputheader = null){
+    let header = {};
+    if (inputheader == null || inputheader == ''){
+        header = {
+            'User-Agent': 'kwangsing3/github-profilemd-Generater',
+            'Referer':'https://github.com/kwangsing3/github-profilemd-Generater',
+        };
+    }else
+        header = inputheader;
+
+        return axios({
+            url: 'https://api.github.com/graphql',
+            method: 'get',
+            headers: header,
+            data: data,
+        });
 }
-async function POST(url, header, data){
+function POST(header, data){
     return axios({
-        url: url,
+        url: 'https://api.github.com/graphql',
         method: 'post',
         headers: header,
         data: data,

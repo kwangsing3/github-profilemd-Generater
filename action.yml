@@ -1,15 +1,11 @@
-name: GitHub-readme-profile
-description: Generate profile summary cards and commit to default branch
+name: github-profilemd-Generater
+description: Generate profile cards and commit to default branch
 author: kwangsing3
 
 inputs:
   USERNAME:
     required: true
     description: 'GitHub username'
-    default: ${{ github.repository_owner }}
-  GITHUB_REPO_OWNER:
-    required: true
-    description: 'repo owner'
     default: ${{ github.repository_owner }}
   GITHUB_REPO_NAME:
     required: true
