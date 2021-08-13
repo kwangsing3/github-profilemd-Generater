@@ -20,7 +20,7 @@ const execCmd = (cmd, args = []) => {
         });
         app.on('error', reject);
     }).catch((error)=>{
-        console.error(error.message);
+        throw error;
     })
 }
 
@@ -39,9 +39,6 @@ async function CommandANDPush(){
     ]);
     await execCmd('git', ['add','-A']);
     await execCmd('git', ['commit', '-m', ' github-profilemd-Generater[bot] Commited: '+ uti_time.GetCurrentTime()] );
-    
-    await execCmd('git', ['remote','remove','origin']);
-    await execCmd('git', ['remote','set-url','origin',`https://github.com/${process.env.USERNAME}/${process.env.GITHUB_REPO_NAME}.git`]);
     await execCmd('git', ['push']);
 };
 module.exports.CommandANDPush = CommandANDPush;

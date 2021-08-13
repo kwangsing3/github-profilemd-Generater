@@ -4,13 +4,16 @@ const uti_fs = require('./utils/fswr');
 const uti_cli = require('./utils/cli');
 
 
+
 const main = async()=>{
     
     var GITHUB_REPO_NAME = process.env.GITHUB_REPO_NAME = core.getInput('GITHUB_REPO_NAME');
     let USERNAME         = process.env.USERNAME = core.getInput('USERNAME');
     let isGithubAction = false;
     // Entry reroute
-   
+
+    //GetInfo
+
     // Generate
     console.info("Start Generate...");
     try{
@@ -30,8 +33,8 @@ const main = async()=>{
         await uti_cli.CommandANDPush()
             .then(()=>{
                 console.log("Git push Successful!...");
-            }).catch(()=>{
-                console.error("Git push Failed...")
+            }).catch((err)=>{
+                console.error("Git push Failed: \n"+err)
             });
     }catch(error){
         core.setFailed(error);

@@ -477,6 +477,56 @@ exports.toCommandValue = toCommandValue;
 
 /***/ }),
 
+/***/ 653:
+/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
+
+
+const { spawn } = __nccwpck_require__(129);
+const uti_time = __nccwpck_require__(767);
+const execCmd = (cmd, args = []) => {
+    return new Promise((resolve, reject) => {
+        const app = spawn(cmd, args, { stdio: 'pipe' });
+        let stdout = '';
+        app.stdout.on('data', (data) => {
+            stdout = data;
+        });
+        app.on('close', (code) => {
+            if (code !== 0 && !stdout.includes('nothing to commit')) {
+                err = new Error(
+                    `${cmd} ${args} \n ${stdout} \n Invalid status code: ${code}`
+                );
+                err.code = code;
+                return reject(err);
+            }
+            return resolve(code);
+        });
+        app.on('error', reject);
+    }).catch((error)=>{
+        throw error;
+    })
+}
+
+async function CommandANDPush(){
+    await execCmd('git', [
+        'config',
+        '--global',
+        'user.email',
+        'bot@example.com',
+    ]);
+    await execCmd('git', [ 
+        'config',
+        '--global',
+        'user.name',
+        'github-profilemd-Generater[bot]',
+    ]);
+    await execCmd('git', ['add','-A']);
+    await execCmd('git', ['commit', '-m', ' github-profilemd-Generater[bot] Commited: '+ uti_time.GetCurrentTime()] );
+    await execCmd('git', ['push']);
+};
+module.exports.CommandANDPush = CommandANDPush;
+
+/***/ }),
+
 /***/ 246:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
@@ -525,11 +575,11 @@ module.exports.GetCurrentTime = GetCurrentTime;
 
 /***/ }),
 
-/***/ 217:
+/***/ 129:
 /***/ ((module) => {
 
-module.exports = eval("require")("./utils/cli");
-
+"use strict";
+module.exports = require("child_process");
 
 /***/ }),
 
@@ -601,7 +651,8 @@ var __webpack_exports__ = {};
 const core = __nccwpck_require__(115);
 const uti_time = __nccwpck_require__(767);
 const uti_fs = __nccwpck_require__(246);
-const uti_cli = __nccwpck_require__(217);
+const uti_cli = __nccwpck_require__(653);
+
 
 
 const main = async()=>{
@@ -610,7 +661,9 @@ const main = async()=>{
     let USERNAME         = process.env.USERNAME = core.getInput('USERNAME');
     let isGithubAction = false;
     // Entry reroute
-   
+
+    //GetInfo
+
     // Generate
     console.info("Start Generate...");
     try{
@@ -630,8 +683,8 @@ const main = async()=>{
         await uti_cli.CommandANDPush()
             .then(()=>{
                 console.log("Git push Successful!...");
-            }).catch(()=>{
-                console.error("Git push Failed...")
+            }).catch((err)=>{
+                console.error("Git push Failed: \n"+err)
             });
     }catch(error){
         core.setFailed(error);
