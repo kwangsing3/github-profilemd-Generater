@@ -102,6 +102,3 @@ typings/
 
 # TernJS port file
 .tern-port
-
-# Custom
-output/
