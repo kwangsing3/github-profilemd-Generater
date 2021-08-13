@@ -3123,11 +3123,11 @@ const execCmd = (cmd, args = []) => {
         });
         app.on('error', reject);
     }).catch((error)=>{
-        console.error(error.message);
+        console.log(`cmd Failed: `+ String(error));
     })
 }
 
-async function CommandANDPush(){
+async function CommandANDPush(msg = ""){
     await execCmd('git', [
         'config',
         '--global',
@@ -3141,11 +3141,39 @@ async function CommandANDPush(){
         'github-profilemd-Generater[bot]',
     ]);
     await execCmd('git', ['add','-A']);
-    await execCmd('git', ['commit', '-m', ' github-profilemd-Generater[bot] Commited: '+ uti_time.GetCurrentTime()] );
+
+    if (msg == ""){
+        msg = 'github-profilemd-Generater[bot] Commited: '+ uti_time.GetCurrentTime();
+    }
+    await execCmd('git', ['commit', '-m', msg] );
+    await execCmd('git', ['remote','rm','origin']);
+    await execCmd('git', ['remote','add','origin',`https://github.com/${process.env.USERNAME }/${process.env.GITHUB_REPO_NAME}.git`]);
+
+
+
     await execCmd('git', ['push']);
 };
 
 module.exports.CommandANDPush = CommandANDPush;
+
+const readline = __nccwpck_require__(1058);
+
+const readLineAsync = () => {
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output : process.stdout,
+  });
+  
+  return new Promise((resolve) => {
+    rl.prompt();
+    rl.on('line', (line) => {
+      rl.close();
+      resolve(line);
+    });
+  });
+};
+
+module.exports.readLineAsync = readLineAsync;
 
 /***/ }),
 
@@ -3154,26 +3182,58 @@ module.exports.CommandANDPush = CommandANDPush;
 
 //- File System write and read-//
 const fs = __nccwpck_require__(5747);
+const path = __nccwpck_require__(5622);
 
-
-async function WriteFile(path = "" , content , SucessCallback, FailedCallback) {
+async function WriteFile(targetpath = "" , content = "" , SucessCallback, FailedCallback) {
     return new Promise((resolve,reject) =>{
-        fs.writeFile(path, content, function (err) {
+        fs.promises.mkdir(path.dirname(targetpath), {recursive: true}).then(
+            ()=>{
+                fs.writeFile(targetpath, content, function (err) {
+                    if (err) 
+                        reject(FailedCallback(err));
+                    resolve(SucessCallback());
+                })
+            }
+        );
+    }).catch((error)=>{
+        console.error(error);
+    });
+}
+
+
+async function ClearFolder(path = "" , SucessCallback, FailedCallback) {
+    return new Promise((resolve,reject) =>{
+        fs.rmdir(path,{ recursive: true }, function (err) {
             if (err) 
-                reject(FailedCallback());
+                reject(FailedCallback(err));
             resolve(SucessCallback());
         });
-    }).catch((error)=>{
-        console.error(error.message);
+    }).catch(()=>{
+        console.error("Clear unexpected failed");
+    });
+}
+
+async function CopyFile(pathA = "" , pathB = "" ,SucessCallback, FailedCallback) {
+    return new Promise((resolve,reject) =>{
+        fs.promises.mkdir(path.dirname(pathB), {recursive: true}).then(
+            ()=>{
+                fs.copyFile(pathA, pathB, function (err){
+                    if (err) 
+                        reject(FailedCallback(err));
+                    resolve(SucessCallback());
+                });
+            }
+        );
+    }).catch(()=>{
+        console.error("Copy unexpected failed");
     });
 }
 
 
 
-
-
-
 module.exports.WriteFile = WriteFile;
+module.exports.ClearFolder = ClearFolder;
+module.exports.CopyFile = CopyFile
 
 /***/ }),
 
@@ -3184,16 +3244,26 @@ module.exports.WriteFile = WriteFile;
 
 const axios = __nccwpck_require__(893);
 //https://api.github.com/graphql
-async function GET(url, header){
-    return axios({
-        url: url,
-        method: 'get',
-        headers: header,
-    });
+function GET(url, inputheader = null){
+    let header = {};
+    if (inputheader == null || inputheader == ''){
+        header = {
+            'User-Agent': 'kwangsing3/github-profilemd-Generater',
+            'Referer':'https://github.com/kwangsing3/github-profilemd-Generater',
+        };
+    }else
+        header = inputheader;
+
+        return axios({
+            url: 'https://api.github.com/graphql',
+            method: 'get',
+            headers: header,
+            data: data,
+        });
 }
-async function POST(url, header, data){
+function POST(header, data){
     return axios({
-        url: url,
+        url: 'https://api.github.com/graphql',
         method: 'post',
         headers: header,
         data: data,
@@ -3225,7 +3295,7 @@ function GetCurrentTime() {
     let hour = date_ob.getUTCHours();
     let minu = date_ob.getUTCMinutes();
     let sec = date_ob.getUTCSeconds();
-    return "UTF- "+ year + "-" + month + "-" + date + " " + hour +":" + minu +":" + sec;
+    return "UTC- "+ year + "-" + month + "-" + date + " " + hour +":" + minu +":" + sec;
 }
 
 module.exports.GetCurrentTime = GetCurrentTime;
@@ -3301,6 +3371,14 @@ module.exports = require("os");
 
 "use strict";
 module.exports = require("path");
+
+/***/ }),
+
+/***/ 1058:
+/***/ ((module) => {
+
+"use strict";
+module.exports = require("readline");
 
 /***/ }),
 
