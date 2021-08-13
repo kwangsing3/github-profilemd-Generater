@@ -8,7 +8,7 @@ function GetCurrentTime() {
     let hour = date_ob.getUTCHours();
     let minu = date_ob.getUTCMinutes();
     let sec = date_ob.getUTCSeconds();
-    return "UTF- "+ year + "-" + month + "-" + date + " " + hour +":" + minu +":" + sec;
+    return "UTC- "+ year + "-" + month + "-" + date + " " + hour +":" + minu +":" + sec;
 }
 
 module.exports.GetCurrentTime = GetCurrentTime;
