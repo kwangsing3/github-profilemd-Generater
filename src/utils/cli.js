@@ -24,19 +24,25 @@ const execCmd = (cmd, args = []) => {
     })
 }
 
-async function CommandANDPush(){
-    await execCmd('git', [
-        'config',
-        '--global',
-        'user.email',
-        'bot@example.com',
-    ]);
-    await execCmd('git', [ 
-        'config',
-        '--global',
-        'user.name',
-        'github-profilemd-Generater[bot]',
-    ]);
+async function CommandANDPush(isAction = false){
+    if (!isAction){
+        /*console.warn("(Ignore git commit)");
+        return;*/
+    }else{
+        await execCmd('git', [
+            'config',
+            '--global',
+            'user.email',
+            'bot@example.com',
+        ]);
+        await execCmd('git', [ 
+            'config',
+            '--global',
+            'user.name',
+            'github-profilemd-Generater[bot]',
+        ]);
+    }
+    
     await execCmd('git', ['add','-A']);
     await execCmd('git', ['commit', '-m', ' github-profilemd-Generater[bot] Commited: '+ uti_time.GetCurrentTime()] );
     await execCmd('git', ['push']);
