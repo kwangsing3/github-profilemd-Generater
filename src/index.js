@@ -3,7 +3,16 @@ const uti_time = require('./utils/time');
 const uti_fs = require('./utils/fswr');
 const uti_cli = require('./utils/cli');
 
-const getCommitLanguage = require('./githubAPI/language-composition');
+
+const FETCHandGENERATELangageComposition = require('./svgcards/repo-language-cards');
+const FETCHandGENERATETagsStat = require('./svgcards/stat-card');
+
+/*function MapToString(map){
+    return [...map].reduce((acc, val) => {
+        acc[val[0]] = val[1];
+        return acc;
+      }, {});
+}*/
 
 const main = async()=>{
     
@@ -11,55 +20,50 @@ const main = async()=>{
     let USERNAME         = process.env.USERNAME = core.getInput('USERNAME');
     let isGithubAction = false;
     // Entry reroute
-    if(process.argv.length >= 2){
-        isGithubAction = false;
+    if(GITHUB_REPO_NAME != "" && USERNAME != "" && process.env.GITHUB_TOKEN != ""){
+        isGithubAction = true;
+    }else {
+        isGithubAction = false;   // launch via /.vscode/launch.json
         USERNAME = process.argv[2];
         GITHUB_REPO_NAME = process.argv[3];
         process.env.GITHUB_TOKEN = process.argv[4];
-    }else if(GITHUB_REPO_NAME != "" && USERNAME != ""){
-        isGithubAction = true;
     }
 
-
-    //GetInfo
-    let LangComData = {};
+    core.info("Start Generate Cards...");
+    //1. Languages Composition
     try{
-        LangComData = await getCommitLanguage(USERNAME);
+        await FETCHandGENERATELangageComposition(USERNAME);
     }catch(err){
-        core.error(err);
+        console.error(error);
+        core.setFailed(err);
+    }
+    //2. Tags Stat
+    try{
+        await FETCHandGENERATETagsStat(USERNAME);
+    }catch(err){
+        console.error(err);
+        core.setFailed(err);
     }
 
-    // Generate
-    core.info("Start Generate...");
-    try{
+
+    /*Time cache*/
+    /*try{
         let currentTime = uti_time.GetCurrentTime();
         let content =`cache: `+ currentTime;
         await uti_fs.WriteFile('README.md', content, true)
-            .catch((err)=>{
-                throw err;
-            });
-
-        //lang compos
-        let langD = JSON.stringify(MapToString(LangComData));
-        await uti_fs.WriteFile('output/LANGCOMPOS.md', langD, true)
-            .catch((err)=>{
-                throw err;
-            });
+    }catch(err){
+        console.error(error);
+        core.setFailed(err);
+    }*/
 
 
-    }catch(error){
-        core.error(error);
-    }
-    // Commit
+    // Git Commit
     try{
-        await uti_cli.CommandANDPush(isGithubAction)
-            .then(()=>{
-                core.info("Git push Successful!...");
-            }).catch((err)=>{
-                throw err;
-            });
+        if(isGithubAction)
+            await uti_cli.CommandANDPush(isGithubAction);
     }catch(error){
-        core.error(error);
+        console.error(error);
+        core.setFailed(error);
     }
 
 }
@@ -67,9 +71,3 @@ main();
 
 
 
-function MapToString(map){
-    return [...map].reduce((acc, val) => {
-        acc[val[0]] = val[1];
-        return acc;
-      }, {});
-}

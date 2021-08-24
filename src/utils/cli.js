@@ -45,6 +45,8 @@ async function CommandANDPush(isAction = false){
     
     await execCmd('git', ['add','-A']);
     await execCmd('git', ['commit', '-m', ' github-profilemd-Generater[bot] Commited: '+ uti_time.GetCurrentTime()] );
+    await execCmd('git', ['remote','-v']);
     await execCmd('git', ['push']);
+    console.log("Git push Done!...");
 };
 module.exports.CommandANDPush = CommandANDPush;

@@ -7,16 +7,15 @@ async function WriteFile(targetpath = "", content, log = false) {
         fs.promises.mkdir(path.dirname(targetpath), {recursive: true}).then(
             ()=>{
                 fs.writeFile(targetpath, content, function (err) {
-                    if (err) 
-                        reject(()=>{throw err;});
+                    if (err) {
+                        throw err;
+                    }
                     if (log)
                         console.log(`Genearted ${targetpath}`);
                     resolve();
                 })
             }
         );
-    }).catch((error)=>{
-        throw(error);
     });
 }
 

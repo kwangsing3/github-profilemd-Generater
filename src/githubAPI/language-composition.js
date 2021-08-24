@@ -1,4 +1,4 @@
-const request = require('../utils/rest.js');
+const request = require('../utils/rest');
 
 const fetcher = (token, variables) => {
     return request(
@@ -7,24 +7,19 @@ const fetcher = (token, variables) => {
         },
         {
             query: `
-      query CommitLanguages($login: String!) {
-        user(login: $login) {
-          contributionsCollection {
-            commitContributionsByRepository(maxRepositories: 100) {
-              repository {
-                primaryLanguage {
-                  name
-                  color
-                }
-              }
-              contributions {
-                  totalCount
-              }
-            }
-          }
-        }
-      }
-      `,
+                  query LanguageCompositionQuery($login: String!) {
+                    user(login: $login) {
+                      repositories(isFork: false, first: 100) {
+                        nodes {
+                          primaryLanguage {
+                            name
+                            color
+                          }
+                        }
+                      }
+                    }
+                  }
+            `,
             variables,
         }
     );
@@ -32,39 +27,60 @@ const fetcher = (token, variables) => {
 
 // repos per language
 async function getCommitLanguage(username) {
-    const languageMap = new Map();
-
-    const res = await fetcher(process.env.GITHUB_TOKEN, {
-        login: username,
-    });
+    let res = {};
+    try{
+        res = await fetcher(process.env.GITHUB_TOKEN, {
+            login: username,
+        });
+    }catch(err){
+        throw err;
+    }
 
     if (res.data.errors) {
         throw Error(res.data.errors[0].message || 'GetCommitLanguage failed');
     }
 
-    res.data.data.user.contributionsCollection.commitContributionsByRepository.forEach(
-        (node) => {
-            if (node.repository.primaryLanguage == null) {
-                return;
-            }
-            const langName = node.repository.primaryLanguage.name;
-            const langColor = node.repository.primaryLanguage.color;
-            const totalCount = node.contributions.totalCount;
-            if (totalCount > 0) {
-                if (languageMap.has(langName)) {
-                    const lang = languageMap.get(langName);
-                    lang.count += totalCount;
-                } else {
-                    languageMap.set(langName, {
-                        count: totalCount,
-                        color: langColor ? langColor : '#586e75',
-                    });
-                }
+    let json = JSON.stringify(res.data.data);
+    json = JSON.parse(json);
+
+    /*
+    {
+        user:{
+            repositories:{
+                edges:[
+                    {
+                        node:{
+                            name:"",
+                            primaryLanguage:{
+                                "color": "",
+                                "name": "",
+                            },
+                        }
+                    },
+                    ...
+                ]
             }
         }
-    );
+    }
+    */
+    let result = {};
+    let arry = json['user']['repositories']['nodes'];
+    for (let index in arry){
+        if( arry[index]['primaryLanguage'] == null)
+            continue;
+        let lang_name = arry[index]['primaryLanguage']['name'];
+        let lang_color = arry[index]['primaryLanguage']['color'];
+        if(result.hasOwnProperty(lang_name)){
+            result[lang_name]['size'] += 1;
+        }else{
+            result[lang_name] = {
+                color: lang_color ? lang_color : '#586e75',
+                size: 1,
+            };
+        }
+    }
 
-    return languageMap;
+    return result;
 }
 
 module.exports = getCommitLanguage;
