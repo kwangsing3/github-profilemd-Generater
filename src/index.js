@@ -51,7 +51,7 @@ const main = async()=>{
     let content =`cache: `+ uti_time.GetCurrentTime() +`<br/><br/>`;
     let keys = ThemeMap.keys();
     for(let key of keys){
-        content += `![](./${key}/LangCompos.svg)`+`<br/>`;
+        content += `![](./${key}/langCompos.svg)`+`<br/>`;
         content += `![](./${key}/tagsstat.svg)`+`<br/><br/>`;
     };
 
