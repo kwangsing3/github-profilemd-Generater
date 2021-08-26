@@ -6,6 +6,7 @@ const uti_cli = require('./utils/cli');
 
 const FETCHandGENERATELangageComposition = require('./svgcards/repo-language-cards');
 const FETCHandGENERATETagsStat = require('./svgcards/stat-card');
+const ThemeMap = require('./content/theme');
 
 /*function MapToString(map){
     return [...map].reduce((acc, val) => {
@@ -47,14 +48,19 @@ const main = async()=>{
 
 
     /*Time cache*/
-    /*try{
-        let currentTime = uti_time.GetCurrentTime();
-        let content =`cache: `+ currentTime;
-        await uti_fs.WriteFile('README.md', content, true)
+    let content =`cache: `+ uti_time.GetCurrentTime() +`<br/><br/>`;
+    let keys = ThemeMap.keys();
+    for(let key of keys){
+        content += `![](./${key}/LangCompos.svg)`+`<br/>`;
+        content += `![](./${key}/tagsstat.svg)`+`<br/><br/>`;
+    };
+
+    try{
+        await uti_fs.WriteFile('./output/README.md', content, true)
     }catch(err){
         console.error(error);
         core.setFailed(err);
-    }*/
+    }
 
 
     // Git Commit
