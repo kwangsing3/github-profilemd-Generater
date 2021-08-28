@@ -50,7 +50,7 @@ const GenerateLangComposCard = async function (username) {
     let keys = Theme.keys();
     for(let key of keys){
         try{
-            await utils_fs.WriteFile(`./output/${key}/langcompos.svg`, ThemeCards[i]);
+            await utils_fs.WriteFile(`./output/github-profilemd-generater/${key}/langcompos.svg`, ThemeCards[i]);
             i++;
             if(i > ThemeCards.length)
                 break;
