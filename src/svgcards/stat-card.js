@@ -57,7 +57,7 @@ const GenerateTagsStatCard = async function (username) {
     let keys = Theme.keys();
     for(let key of keys){
         try{
-            await utils_fs.WriteFile(`./output/${key}/tagsstat.svg`, ThemeCards[i]);
+            await utils_fs.WriteFile(`./output/github-profilemd-generater/${key}/tagsstat.svg`, ThemeCards[i]);
             i++;
             if(i > ThemeCards.length)
                 break;

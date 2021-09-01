@@ -4,7 +4,8 @@
   "description": "Github-profilemd-generater is a tool work on github action to scan and analyze your github account, then generated as a README.md file.",
   "main": "src/index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "prod": "node dist/index.js"
   },
   "repository": {
     "type": "git",

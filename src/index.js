@@ -15,6 +15,7 @@ const ThemeMap = require('./content/theme');
       }, {});
 }*/
 
+
 const main = async()=>{
     
     var GITHUB_REPO_NAME = process.env.GITHUB_REPO_NAME = core.getInput('GITHUB_REPO_NAME');
@@ -46,13 +47,12 @@ const main = async()=>{
         core.setFailed(err);
     }
 
-
     /*Time cache*/
     let content =`cache: `+ uti_time.GetCurrentTime() +`<br/><br/>`;
     let keys = ThemeMap.keys();
     for(let key of keys){
-        content += `![](./${key}/langCompos.svg)`+`<br/>`;
-        content += `![](./${key}/tagsstat.svg)`+`<br/><br/>`;
+        content += `![](./github-profilemd-generater/${key}/langCompos.svg)`+`<br/>`;
+        content += `![](./github-profilemd-generater/${key}/tagsstat.svg)`+`<br/><br/>`;
     };
 
     try{
