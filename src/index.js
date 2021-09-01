@@ -36,7 +36,7 @@ const main = async()=>{
     try{
         await FETCHandGENERATELangageComposition(USERNAME);
     }catch(err){
-        console.error(error);
+        console.error(err);
         core.setFailed(err);
     }
     //2. Tags Stat
@@ -58,7 +58,7 @@ const main = async()=>{
     try{
         await uti_fs.WriteFile('./output/README.md', content, true)
     }catch(err){
-        console.error(error);
+        console.error(err);
         core.setFailed(err);
     }
 
