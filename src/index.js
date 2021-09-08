@@ -42,7 +42,7 @@ const main = async()=>{
             }
         }
     }
-    if (process.env.GITHUB_TOKEN == ""){
+    if (process.env.GITHUB_TOKEN == undefined){
         Logger.error(`Error: TOKEN was Empty, make sure name secrets as "MY_GITHUB_TOKEN"`);
         return;
     }else if(USERNAME == ""){
@@ -81,7 +81,7 @@ const main = async()=>{
 
     // Git Commit
     try{
-        if(process.env.isGithubAction)
+        if(process.env.isGithubAction != 'false')
             await uti_cli.CommandANDPush(process.env.isGithubAction);
     }catch(error){
         Logger.error(error);

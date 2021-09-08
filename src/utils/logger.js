@@ -11,25 +11,25 @@ const core = require('@actions/core');
 
 
 module.exports.info = function(msg = ""){
-    if (process.env.isGithubAction){
-        core.info(msg);
-    }else{
+    if (process.env.isGithubAction == 'false'){
         console.log(msg);
+    }else{
+        core.info(msg);
     }
 }
 module.exports.warning = function(msg = ""){
-    if (process.env.isGithubAction){
-        core.warning(msg);
-    }else{
+    if (process.env.isGithubAction == 'false'){
         console.warn(msg);
+    }else{
+        core.warning(msg);
     }
 }
 module.exports.error = function(msg = ""){
-    if (process.env.isGithubAction){
+    if (process.env.isGithubAction == 'false'){
+        console.error(msg);
+    }else{
         core.error(msg);
         core.setFailed(msg);
-    }else{
-        console.error(msg);
     }
     process.exit(1);
 }
