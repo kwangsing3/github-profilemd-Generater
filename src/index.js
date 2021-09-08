@@ -2,7 +2,7 @@ const core = require('@actions/core');
 const uti_time = require('./utils/time');
 const uti_fs = require('./utils/fswr');
 const uti_cli = require('./utils/cli');
-
+const Logger = require('./utils/logger');
 
 const FETCHandGENERATELangageComposition = require('./svgcards/repo-language-cards');
 const FETCHandGENERATETagsStat = require('./svgcards/stat-card');
@@ -20,31 +20,48 @@ const main = async()=>{
     
     var GITHUB_REPO_NAME = process.env.GITHUB_REPO_NAME = core.getInput('GITHUB_REPO_NAME');
     let USERNAME         = process.env.USERNAME = core.getInput('USERNAME');
-    let isGithubAction = false;
+    process.env.isGithubAction = false;
     // Entry reroute
     if(GITHUB_REPO_NAME != "" && USERNAME != "" && process.env.GITHUB_TOKEN != ""){
-        isGithubAction = true;
+        process.env.isGithubAction = true;
     }else {
-        isGithubAction = false;   // launch via /.vscode/launch.json
-        USERNAME = process.argv[2];
-        GITHUB_REPO_NAME = process.argv[3];
-        process.env.GITHUB_TOKEN = process.argv[4];
+        process.env.isGithubAction = false;   // launch via /.vscode/launch.json
+        let args = process.argv;
+        for (let i = 0; i < args.length; i++) {
+            const element = args[i];
+            switch (i) {
+                case 2:
+                    USERNAME = element;
+                    break;
+                case 3:
+                    GITHUB_REPO_NAME = element;
+                    break;
+                case 4:
+                    process.env.GITHUB_TOKEN = element;
+                    break;
+            }
+        }
+    }
+    if (process.env.GITHUB_TOKEN == ""){
+        Logger.error(`Error: TOKEN was Empty, make sure name secrets as "MY_GITHUB_TOKEN"`);
+        return;
+    }else if(USERNAME == ""){
+        Logger.error(`Error: Get username:${USERNAME}, try to make sure input was correct。`);
+        return;
     }
 
-    core.info("Start Generate Cards...");
+    Logger.info("Start Generate Cards...");
     //1. Languages Composition
     try{
         await FETCHandGENERATELangageComposition(USERNAME);
     }catch(err){
-        console.error(err);
-        core.setFailed(err);
+        Logger.error(err);
     }
     //2. Tags Stat
     try{
         await FETCHandGENERATETagsStat(USERNAME);
     }catch(err){
-        console.error(err);
-        core.setFailed(err);
+        Logger.error(err);
     }
 
     /*Time cache*/
@@ -58,22 +75,17 @@ const main = async()=>{
     try{
         await uti_fs.WriteFile('./output/README.md', content, true)
     }catch(err){
-        console.error(err);
-        core.setFailed(err);
+        Logger.error(err);
     }
 
 
     // Git Commit
     try{
-        if(isGithubAction)
-            await uti_cli.CommandANDPush(isGithubAction);
+        if(process.env.isGithubAction)
+            await uti_cli.CommandANDPush(process.env.isGithubAction);
     }catch(error){
-        console.error(error);
-        core.setFailed(error);
+        Logger.error(error);
     }
 
 }
 main();
-
-
-

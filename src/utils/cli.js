@@ -1,6 +1,7 @@
 
 const { spawn } = require('child_process');
 const uti_time = require('./time');
+const Logger = require('./logger');
 const execCmd = (cmd, args = []) => {
     return new Promise((resolve, reject) => {
         const app = spawn(cmd, args, { stdio: 'pipe' });
@@ -47,6 +48,6 @@ async function CommandANDPush(isAction = false){
     await execCmd('git', ['commit', '-m', ' github-profilemd-Generater[bot] Commited: '+ uti_time.GetCurrentTime()] );
     await execCmd('git', ['remote','-v']);
     await execCmd('git', ['push']);
-    console.log("Git push Done!...");
+    Logger.info("Git push Done!...");
 };
 module.exports.CommandANDPush = CommandANDPush;
