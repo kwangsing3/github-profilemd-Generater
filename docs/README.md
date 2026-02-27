@@ -25,14 +25,13 @@ ___
 ## How it works ?
 Fetch data from [Github GraphQL](https://docs.github.com/en/graphql) → Generate .SVG files→ Bot will commit and push on <text style = "color: yellow;">"master"</text> branch.
 ___
-## Useage
+## Usage
 Before use this tool, make sure you found the [SPECIAL SECRET](https://docs.github.com/en/account-and-profile/setting-up-and-managing-your-github-profile/customizing-your-profile/managing-your-profile-readme) of Github.
 <br/>ex. [kwangsing3/kwangsing3](https://github.com/kwangsing3/kwangsing3)
 <br/><br/>
 ### Github Action:
-1. To use [Github GraphQL](https://docs.github.com/en/graphql)  token with getting account infomation is in need, follow the wiki to know about [HOW TO MAKE A TOKEN FOR YOUR PORFILE](this). 
-
-2. Add token to your profile repo secret and named it as ```MY_GITHUB_TOKEN```, see [ADD SECRET TO REPO]().
+1. To use [Github GraphQL](https://docs.github.com/en/graphql) a token with account access is needed, follow the guide to know about [HOW TO MAKE A TOKEN FOR YOUR PROFILE](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens).
+2. Add the token to your profile repo secret and name it ```MY_GITHUB_TOKEN```, see [Encrypted secrets for repositories](https://docs.github.com/en/actions/security-guides/encrypted-secrets).
 
 3. Insert steps below in your .yml file.
 ```yaml
@@ -44,12 +43,13 @@ Before use this tool, make sure you found the [SPECIAL SECRET](https://docs.gith
           GITHUB_REPO_NAME: ${{ github.event.repository.name }} 
     
 ```
-- ### Or follow the [Template code](sample).
 ### Local Launch:
-Run commands with args, or make a .vscode launch.json as a develop tool.
+Install dependencies and build the bundle, then run with your inputs.
 ```bash
-$npm run prod [arg1] [arg2] [arg3]
-```
+npm install
+npx ncc build src/index.js -o dist
+node dist/index.js [username] [reponame] [MY_GITHUB_TOKEN]
+``` 
 
 * [arg1]: ``` username ```
 * [arg2]: ``` reponame ```
