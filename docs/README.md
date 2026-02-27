@@ -30,17 +30,19 @@ Before use this tool, make sure you found the [SPECIAL SECRET](https://docs.gith
 <br/>ex. [kwangsing3/kwangsing3](https://github.com/kwangsing3/kwangsing3)
 <br/><br/>
 ### Github Action:
-1. To use [Github GraphQL](https://docs.github.com/en/graphql) a token with account access is needed, follow the guide to know about [HOW TO MAKE A TOKEN FOR YOUR PROFILE](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens).
+1. To use [Github GraphQL](https://docs.github.com/en/graphql), a personal access token with the necessary scopes is needed; follow the guide to know about [HOW TO MAKE A TOKEN FOR YOUR PROFILE](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens).
 2. Add the token to your profile repo secret and name it ```MY_GITHUB_TOKEN```, see [Encrypted secrets for repositories](https://docs.github.com/en/actions/security-guides/encrypted-secrets).
 
-3. Insert steps below in your .yml file.
+3. Add the following steps to a job in your workflow (for example, in `.github/workflows/profile-cards.yml`):
 ```yaml
- - uses: kwangsing3/github-profilemd-Generater@release
-        env: 
-          GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}
-        with:
-          USERNAME: ${{ github.repository_owner }}
-          GITHUB_REPO_NAME: ${{ github.event.repository.name }} 
+steps:
+  - uses: actions/checkout@v4
+  - uses: kwangsing3/github-profilemd-Generater@release
+    env:
+      GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}
+    with:
+      USERNAME: ${{ github.repository_owner }}
+      GITHUB_REPO_NAME: ${{ github.event.repository.name }} 
     
 ```
 ### Local Launch:
