@@ -1,23 +1,44 @@
-# Github-profilemd-Generater
+# github-profilemd-Generater
 
-Generate GitHub profile summary cards with GitHub Actions. The action queries the GitHub GraphQL API, renders themeable SVGs, and commits them back to your repository so you can embed them in your profile README.
+GitHub Actions 工具，透過 **GitHub GraphQL API** 自動產生個人頁面統計卡片（SVG），並 commit 回儲存庫，讓你的 Profile README 保持最新狀態。
 
-## What You Get
-- Language composition card and tags/statistics card for each theme in `output/github-profilemd-generater/<theme>/`.
-- An `output/README.md` snippet listing the generated cards you can include in your profile.
-- Hands-free commits to the default branch when run inside GitHub Actions.
+> 多語言文件：[English](docs/README.md) ｜ [日本語](docs/README_ja.md) ｜ [繁體中文](docs/README_zh-tw.md) ｜ [简体中文](docs/README_zh-ch.md)
 
-## Requirements
-- A GitHub token (`MY_GITHUB_TOKEN`) with `read:user` and `repo` (for private data) scopes stored as a repository secret.
-- Node.js 20+ if you want to run the generator locally.
+## 產生的卡片
 
-## GitHub Actions Usage
+每次執行會在 `output/github-profilemd-generater/<theme>/` 輸出：
+
+| 檔案 | 說明 |
+|------|------|
+| `langcompos.svg` | 語言組成圓餅圖 |
+| `tagsstat.svg` | 標籤 / 統計資訊卡片 |
+
+同時產生 `output/README.md` 片段，可直接嵌入你的 Profile README。
+
+## 可用主題
+
+`default` ｜ `solarized` ｜ `solarized_dark` ｜ `vue` ｜ `dracula` ｜ `monokai` ｜ `nord_bright` ｜ `nord_dark` ｜ `github` ｜ `github_dark`
+
+## GitHub Actions 快速設定
+
+### 1. 在目標儲存庫新增 Secret
+
+前往 **Settings → Secrets and variables → Actions** 新增：
+
+| Secret 名稱 | 說明 |
+|---|---|
+| `MY_GITHUB_TOKEN` | 具備 `read:user` 與 `repo` 權限的 Personal Access Token |
+
+### 2. 新增 Workflow 檔案
+
 ```yaml
+# .github/workflows/generate-profile.yml
 name: Generate profile cards
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 0 * * 1'
+    - cron: '0 0 * * 1'   # 每週一自動執行
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -30,16 +51,24 @@ jobs:
           USERNAME: ${{ github.repository_owner }}
           GITHUB_REPO_NAME: ${{ github.event.repository.name }}
 ```
-- Add the secret under **Settings → Secrets and variables → Actions** as `MY_GITHUB_TOKEN`.
-- Reference the generated cards in your profile README using relative paths under `./output/github-profilemd-generater/`.
 
-## Local Development
+### 3. 將卡片嵌入 Profile README
+
+```markdown
+[![lang](./output/github-profilemd-generater/nord_dark/langcompos.svg)](https://github.com/kwangsing3/github-profilemd-Generater)
+[![tags](./output/github-profilemd-generater/nord_dark/tagsstat.svg)](https://github.com/kwangsing3/github-profilemd-Generater)
+```
+
+## 本地執行
+
 ```bash
 npm install
 npx ncc build src/index.js -o dist
-node dist/index.js <username> <repo> <MY_GITHUB_TOKEN>
+node dist/index.js <username> <repo_name> <github_token>
 ```
-- Generated assets and the snippet are written to `output/`.
 
-## Additional Docs
-- More details and translations are available in `docs/README.md` (English/Japanese/Traditional Chinese/Simplified Chinese).
+產生結果寫入 `output/` 目錄。
+
+## 授權
+
+MIT
