@@ -29,6 +29,17 @@ GitHub Actions 工具，透過 **GitHub GraphQL API** 自動產生個人頁面�
 |---|---|
 | `MY_GITHUB_TOKEN` | 具備 `read:user` 與 `repo` 權限的 Personal Access Token |
 
+<details>
+<summary>📷 如何建立 Personal Access Token（圖解步驟）</summary>
+
+| 步驟 | 操作 | 畫面 |
+|:---:|------|------|
+| 1 | 右上頭像選單 → **Settings** | ![step1](wiki/step1.png) |
+| 2 | **Developer settings → Personal access tokens** → 點 **Generate new token** | ![step2](wiki/step2.png) |
+| 3 | 勾選 `repo` 與 `read:user` scopes，產生後複製 token 貼到上方 Secret | ![step3](wiki/step3.png) |
+
+</details>
+
 ### 2. 新增 Workflow 檔案
 
 ```yaml
