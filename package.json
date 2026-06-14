@@ -1,6 +1,6 @@
 {
   "name": "github-profilemd-generater",
-  "version": "0.1.0",
+  "version": "2.0.0",
   "description": "Github-profilemd-generater is a tool work on github action to scan and analyze your github account, then generated as a README.md file.",
   "type": "module",
   "main": "src/index.js",
