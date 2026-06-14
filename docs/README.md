@@ -16,14 +16,13 @@ To generate account info on Github as a profile card or resume.
 ___
 ## Feature
 
-- Repositories Composition
-- Tags Preference
-- ...
-- ...
-- .etc
+- Overview stats (Stars / Repos / Followers / Commits / PR / Issue)
+- Repositories language composition (by real code byte size)
+- Topics / tags preference
+- Configurable themes, top-N, hidden languages and output directory
 ___
 ## How it works ?
-Fetch data from [Github GraphQL](https://docs.github.com/en/graphql) → Generate .SVG files→ Bot will commit and push on <text style = "color: yellow;">"master"</text> branch.
+Fetch data from [Github GraphQL](https://docs.github.com/en/graphql) → Generate .SVG files→ Bot will commit and push on the <text style = "color: yellow;">"release"</text> (default) branch. Runs on the GitHub Actions <b>node24</b> runtime.
 ___
 ## Usage
 Before use this tool, make sure you found the [SPECIAL SECRET](https://docs.github.com/en/account-and-profile/setting-up-and-managing-your-github-profile/customizing-your-profile/managing-your-profile-readme) of Github.
@@ -35,21 +34,33 @@ Before use this tool, make sure you found the [SPECIAL SECRET](https://docs.gith
 
 3. Add the following steps to a job in your workflow (for example, in `.github/workflows/profile-cards.yml`):
 ```yaml
-steps:
-  - uses: actions/checkout@v4
-  - uses: kwangsing3/github-profilemd-Generater@release
-    env:
-      GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}
-    with:
-      USERNAME: ${{ github.repository_owner }}
-      GITHUB_REPO_NAME: ${{ github.event.repository.name }} 
-    
+permissions:
+  contents: write          # let the bot commit cards back to the repo
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: kwangsing3/github-profilemd-Generater@release
+        env:
+          GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}
+        with:
+          USERNAME: ${{ github.repository_owner }}
+          GITHUB_REPO_NAME: ${{ github.event.repository.name }}
+          # optional:
+          THEME: 'all'        # or a comma list, e.g. "nord_dark,dracula"
+          TOP_N: '8'          # number of languages / tags per card
+          HIDE: ''            # languages to exclude, e.g. "HTML,CSS"
+          OUTPUT_DIR: 'output'
 ```
+> 🔒 For production, pin `@release` to a commit SHA and grant only the `permissions` the workflow needs.
+
 ### Local Launch:
 Install dependencies and build the bundle, then run with your inputs.
 ```bash
 npm install
-npx ncc build src/index.js -o dist
+npm run build
 node dist/index.js [username] [reponame] [MY_GITHUB_TOKEN]
 ``` 
 
@@ -59,8 +70,12 @@ node dist/index.js [username] [reponame] [MY_GITHUB_TOKEN]
 ___
 ## Development
 ```bash
-$git clone https://github.com/kwangsing3/github-profilemd.Generater
+git clone https://github.com/kwangsing3/github-profilemd-Generater
+npm install
+npm test        # unit tests (node:test)
+npm run build   # bundle to dist/ (rebuild & commit before pushing)
 ```
+Source is ESM and requires Node.js 24. The `dist/` bundle is committed; CI verifies it stays in sync with the source.
 ___
 ## Others
 

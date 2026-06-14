@@ -16,14 +16,13 @@
 ___
 ## 功能
 
-- Repositories Composition - 程式庫的語言統計
-- Tags Preference - 標籤的喜好
-- ...
-- ...
-- .etc
+- Overview - 總覽統計（Stars / Repos / Followers / Commits / PR / Issue）
+- Repositories Composition - 語言組成（依實際程式碼位元組數）
+- Tags Preference - 標籤 / 主題喜好
+- 可調整主題、顯示數量(TOP_N)、排除語言(HIDE)、輸出目錄(OUTPUT_DIR)
 ___
 ## 工作原理 ?
-從 [Github GraphQL](https://docs.github.com/en/graphql)上獲取資料 → 繪製 .SVG 檔案→ 工具會提交並推出到倉庫的<text style = "color: yellow;">"master"</text> 分支.
+從 [Github GraphQL](https://docs.github.com/en/graphql)上獲取資料 → 繪製 .SVG 檔案→ 工具會提交並推出到倉庫的<text style = "color: yellow;">"release"</text>（預設）分支。執行於 GitHub Actions 的 <b>node24</b> runtime。
 ___
 ## 使用方法
 在使用此工具之前, 確保你已經發現 [Github隱藏的秘密](https://docs.github.com/en/account-and-profile/setting-up-and-managing-your-github-profile/customizing-your-profile/managing-your-profile-readme).
@@ -36,19 +35,34 @@ ___
 
 3. 插入以下的步驟至自己的.yml檔案。
 ```yaml
- - uses: kwangsing3/github-profilemd-Generater@release
-        env: 
+permissions:
+  contents: write          # 允許 bot 將卡片 commit 回儲存庫
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: kwangsing3/github-profilemd-Generater@release
+        env:
           GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}
         with:
           USERNAME: ${{ github.repository_owner }}
-          GITHUB_REPO_NAME: ${{ github.event.repository.name }} 
-    
+          GITHUB_REPO_NAME: ${{ github.event.repository.name }}
+          # 以下皆為選填
+          THEME: 'all'        # 或逗號分隔，如 "nord_dark,dracula"
+          TOP_N: '8'          # 語言 / 標籤顯示數量
+          HIDE: ''            # 排除語言，如 "HTML,CSS"
+          OUTPUT_DIR: 'output'
 ```
-- ### 或是複製整個步驟檔 [範例檔案](sample) 至 ```./github/workflows/```。
+> 🔒 正式環境請將 `@release` 釘選為 commit SHA，並只授予 workflow 必要的 `permissions`。
+
 ### 本地執行:
-執行指令時指定一些係數, 或是在.vscode 中使用 launch.json 以方便使用.
+安裝依賴並打包後，帶入參數執行。
 ```bash
-$npm run prod [arg1] [arg2] [arg3]
+npm install
+npm run build
+node dist/index.js [arg1] [arg2] [arg3]
 ```
 
 * [arg1]: ``` username ```

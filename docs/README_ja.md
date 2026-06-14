@@ -17,14 +17,13 @@ Githubユーザーの情報をカウントし、自己紹介用のカードを�
 ___
 ## 特徴
 
-- リポジトリ構成 - ライブラリの言語統計
-- タグ設定 - タグ設定の好み
-- ...
-- ...
-- その他
+- Overview - 概要統計（Stars / Repos / Followers / Commits / PR / Issue）
+- リポジトリ構成 - 言語統計（実際のコードのバイト数に基づく）
+- タグ設定 - トピック / タグの傾向
+- テーマ、表示数(TOP_N)、除外言語(HIDE)、出力先(OUTPUT_DIR)を設定可能
 ___
 ## 動作原理？
-[Github GraphQL](https://docs.github.com/en/graphql) から情報を取得→ SVGファイルを生成→ ツールが倉庫の<text style ="color:yellow;"> "master" </text>ブランチをコミットします。
+[Github GraphQL](https://docs.github.com/en/graphql) から情報を取得→ SVGファイルを生成→ ツールが倉庫の<text style ="color:yellow;"> "release" </text>（デフォルト）ブランチにコミットします。GitHub Actions の <b>node24</b> ランタイムで実行されます。
 ___
 ## 使用法
 このツールを使用する前に [Github Hidden Secrets](https://docs.github.com/en/account-and-profile/setting-up-and-managing-your-github-profile/customizing-your-profile/managing-your-profile-readme) を発見するこどをお確認でください，
@@ -37,19 +36,34 @@ ___
 
 3.次のを .yml ファイルに挿入します。
 ```yaml
- - uses: kwangsing3/github-profilemd-Generater@release
-        env: 
+permissions:
+  contents: write          # bot がカードをリポジトリにコミットできるようにする
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: kwangsing3/github-profilemd-Generater@release
+        env:
           GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}
         with:
           USERNAME: ${{ github.repository_owner }}
-          GITHUB_REPO_NAME: ${{ github.event.repository.name }} 
+          GITHUB_REPO_NAME: ${{ github.event.repository.name }}
+          # 以下は任意
+          THEME: 'all'        # またはカンマ区切り（例: "nord_dark,dracula"）
+          TOP_N: '8'          # カードごとの言語 / タグ数
+          HIDE: ''            # 除外する言語（例: "HTML,CSS"）
+          OUTPUT_DIR: 'output'
 ```
-- ### または、ステップファイル[サンプルファイル]（サンプル）全体を ```/github/workflows/```にコピーします。
+> 🔒 本番環境では `@release` を commit SHA に固定し、ワークフローに必要な `permissions` のみを付与してください。
 
 ### ローカル実行：
-コマンドの実行時にいくつかの係数を指定するか、便宜上.vscodeでlaunch.jsonを使用します。
+依存関係をインストールしてバンドルをビルドし、引数を指定して実行します。
 ```bash
-$ npm run prod [arg1] [arg2] [arg3]
+npm install
+npm run build
+node dist/index.js [arg1] [arg2] [arg3]
 ```
 
 * [arg1]： ```ユーザー名```

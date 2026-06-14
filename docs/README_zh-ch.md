@@ -16,14 +16,13 @@
 ___
 ## 特色
 
-- Repositories Composition - 库的语言统计
-- Tags Preference - 关于标籤的喜好
-- ...
-- ...
-- .etc
+- Overview - 总览统计（Stars / Repos / Followers / Commits / PR / Issue）
+- Repositories Composition - 语言组成（依实际程式码位元组数）
+- Tags Preference - 标籤 / 主题喜好
+- 可调整主题、显示数量(TOP_N)、排除语言(HIDE)、输出目录(OUTPUT_DIR)
 ___
 ## 工作原理 ?
-从 [Github GraphQL](https://docs.github.com/en/graphql)上获取资料 → 绘製 .SVG 档案→ 工具会提交并推出到仓库的<text style = "color: yellow;">"master"</text> 分支.
+从 [Github GraphQL](https://docs.github.com/en/graphql)上获取资料 → 绘製 .SVG 档案→ 工具会提交并推出到仓库的<text style = "color: yellow;">"release"</text>（预设）分支。执行于 GitHub Actions 的 <b>node24</b> runtime。
 ___
 ## 使用方法
 在使用此工具之前, 确保你已经发现 [Github隐藏的秘密](https://docs.github.com/en/account-and-profile/setting-up-and-managing-your-github-profile/customizing-your-profile/managing-your-profile-readme).
@@ -36,19 +35,34 @@ ___
 
 3. 插入以下的步骤至自己的.yml档案。
 ```yaml
- - uses: kwangsing3/github-profilemd-Generater@release
-        env: 
+permissions:
+  contents: write          # 允许 bot 将卡片 commit 回仓库
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: kwangsing3/github-profilemd-Generater@release
+        env:
           GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}
         with:
           USERNAME: ${{ github.repository_owner }}
-          GITHUB_REPO_NAME: ${{ github.event.repository.name }} 
-    
+          GITHUB_REPO_NAME: ${{ github.event.repository.name }}
+          # 以下皆为选填
+          THEME: 'all'        # 或逗号分隔，如 "nord_dark,dracula"
+          TOP_N: '8'          # 语言 / 标籤显示数量
+          HIDE: ''            # 排除语言，如 "HTML,CSS"
+          OUTPUT_DIR: 'output'
 ```
-- ### 或是複製整个步骤档 [范例档案](sample) 至 ```./github/workflows/```。
+> 🔒 正式环境请将 `@release` 钉选为 commit SHA，并只授予 workflow 必要的 `permissions`。
+
 ### 本地执行:
-执行指令时指定一些係数, 或是在.vscode 中使用 launch.json 以方便使用.
+安装依赖并打包后，带入参数执行。
 ```bash
-$npm run prod [arg1] [arg2] [arg3]
+npm install
+npm run build
+node dist/index.js [arg1] [arg2] [arg3]
 ```
 
 * [arg1]: ``` username ```
