@@ -1,93 +1,44 @@
-const request = require('../utils/rest');
+import { graphql } from '../utils/rest.js';
 
-const fetcher = (token, variables) => {
-    return request(
-        {
-            Authorization: `bearer ${token}`,
-        },
-        {
-            query: `
-                  query tagsStat($login: String!) {
-                    user(login: $login) {
-                      repositories(first: 100, isFork: false) {
-                        nodes {
-                          repositoryTopics(first: 100) {
-                            edges {
-                              node {
-                                topic {
-                                  name
-                                }
-                              }
-                            }
-                          }
-                        }
-                      }
-                    }
-                  }
-            `,
-            variables,
+const QUERY = `
+  query TagsStat($login: String!, $cursor: String) {
+    user(login: $login) {
+      repositories(isFork: false, ownerAffiliations: OWNER, first: 100, after: $cursor) {
+        pageInfo { hasNextPage endCursor }
+        nodes {
+          repositoryTopics(first: 100) {
+            edges { node { topic { name } } }
+          }
         }
-    );
-};
-
-// repos per language
-async function getTagsStat(username) {
-    let res = {};
-    try{
-        res = await fetcher(process.env.GITHUB_TOKEN, {
-            login: username,
-        });
-    }catch(err){
-        throw err;
+      }
     }
+  }
+`;
 
-    if (res.data.errors) {
-        throw Error(res.data.errors[0].message || 'GetgetTagsStat failed');
-    }
-
-    let json = JSON.stringify(res.data.data);
-    json = JSON.parse(json);
-
-    /*
-    {
-        user:{
-            repositories:{
-                nodes:[
-                    {
-                        repositoryTopics:{
-                            "edges": [
-                                {
-                                    "node": {
-                                        "topic": {
-                                        "name": "unity"
-                                        }
-                                    }
-                                },
-                                ...
-                            ]
-                        }
-                    },
-                    ...
-                ]
-            }
+/* Count how many repositories use each topic. Returns { [topic]: count }. */
+export function parseTags(nodes) {
+    const result = {};
+    for (const repo of nodes) {
+        const edges = repo?.repositoryTopics?.edges || [];
+        for (const edge of edges) {
+            const name = edge.node.topic.name;
+            result[name] = (result[name] || 0) + 1;
         }
     }
-    */
-    let result = {};
-    let arry = json['user']['repositories']['nodes'];
-    for (let index in arry){
-        let tags = arry[index]['repositoryTopics']['edges'];
-        for(let ele in tags){
-            let tag_name = tags[ele]['node']['topic']['name'];
-            if(result.hasOwnProperty(tag_name)){
-                result[tag_name] += 1;
-            }else{
-                result[tag_name] = 1;
-            }
-        }
-    }
-
     return result;
 }
 
-module.exports = getTagsStat;
+export async function getTagsStat(username, token = process.env.GITHUB_TOKEN) {
+    let cursor = null;
+    let nodes = [];
+    for (let page = 0; page < 10; page++) {
+        const data = await graphql(token, QUERY, { login: username, cursor });
+        const repos = data.user.repositories;
+        nodes = nodes.concat(repos.nodes);
+        if (!repos.pageInfo.hasNextPage) break;
+        cursor = repos.pageInfo.endCursor;
+    }
+    return parseTags(nodes);
+}
+
+export default getTagsStat;

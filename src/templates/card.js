@@ -1,6 +1,6 @@
-const ThemeMap = require('../content/theme');
-const select = require('d3').select;
-const JSDOM = require('jsdom').JSDOM;
+import ThemeMap from '../content/theme.js';
+import { select } from 'd3';
+import { JSDOM } from 'jsdom';
 
 class Card {
     constructor(
@@ -72,4 +72,4 @@ class Card {
     }
 }
 
-module.exports = Card;
+export default Card;

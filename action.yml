@@ -1,5 +1,5 @@
 name: GitHub-readme-profile
-description: Generate profile summary cards and commit to default branch
+description: Generate profile summary cards (languages, topics, overview) and commit them to the repository
 author: kwangsing3
 
 inputs:
@@ -11,8 +11,25 @@ inputs:
     required: true
     description: 'repo name'
     default: ${{ github.event.repository.name }}
+  THEME:
+    required: false
+    description: 'Comma separated theme keys, or "all" to render every theme'
+    default: 'all'
+  TOP_N:
+    required: false
+    description: 'Number of languages / topics to display per card'
+    default: '8'
+  HIDE:
+    required: false
+    description: 'Comma separated languages to exclude (e.g. "HTML,CSS")'
+    default: ''
+  OUTPUT_DIR:
+    required: false
+    description: 'Directory the generated cards are written to'
+    default: 'output'
+
 runs:
-  using: 'node20'
+  using: 'node24'
   main: 'dist/index.js'
 
 branding:

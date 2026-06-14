@@ -81,4 +81,4 @@ ThemeMap.set('github_dark', {
     line_chart_color: '#40c463',
 });
 
-module.exports = ThemeMap;
+export default ThemeMap;

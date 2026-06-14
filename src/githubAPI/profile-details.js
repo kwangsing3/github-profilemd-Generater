@@ -1,118 +1,50 @@
-const request = require('../utils/rest');
+import { graphql } from '../utils/rest.js';
 
-const fetcher = (token, variables) => {
-    // contain private need token permission
-    // contributionsCollection default to a year ago
-    return request(
-        {
-            Authorization: `bearer ${token}`,
-        },
-        {
-            query: `
-      query UserDetails($login: String!) {
-        user(login: $login) {
-            id
-            name
-            email
-            createdAt
-            twitterUsername
-            company
-            location
-            websiteUrl
-            repositories(first: 100,privacy:PUBLIC, isFork: false, ownerAffiliations: OWNER, orderBy: {direction: DESC, field: STARGAZERS}) {
-              totalCount
-              nodes {
-                stargazers {
-                  totalCount
-                }
-              }
-            }
-            contributionsCollection {
-                contributionCalendar {
-                    weeks {
-                        contributionDays {
-                            contributionCount
-                            date
-                        }
-                    }
-                }
-                contributionYears
-            }
-            repositoriesContributedTo(first: 1,includeUserRepositories:true, privacy:PUBLIC, contributionTypes: [COMMIT, ISSUE, PULL_REQUEST, REPOSITORY]) {
-                totalCount
-            }
-            pullRequests(first: 1) {
-                totalCount
-            }
-            issues(first: 1) {
-                totalCount
-            }
-        }
+// contributionsCollection defaults to the last year (commits this year).
+const QUERY = `
+  query Overview($login: String!, $cursor: String) {
+    user(login: $login) {
+      followers { totalCount }
+      pullRequests { totalCount }
+      issues { totalCount }
+      contributionsCollection { totalCommitContributions }
+      repositories(first: 100, after: $cursor, ownerAffiliations: OWNER, isFork: false) {
+        totalCount
+        pageInfo { hasNextPage endCursor }
+        nodes { stargazerCount }
       }
-
-      `,
-            variables,
-        }
-    );
-};
-
-async function getProfileDetails(username) {
-    const result = {
-        id: 0,
-        name: '',
-        email: '',
-        joinedAt: '',
-        company: null,
-        websiteUrl: null,
-        twitterUsername: null,
-        location: null,
-        totalPublicRepos: 0,
-        totalStars: 0,
-        totalIssueContributions: 0,
-        totalPullRequestContributions: 0,
-        totalRepositoryContributions: 0,
-        contributions: [],
-        contributionYears: [],
-    };
-
-    const res = await fetcher(process.env.GITHUB_TOKEN, {
-        login: username,
-    });
-
-    if (res.data.errors) {
-        throw Error(res.data.errors[0].message || 'GetProfileDetails failed');
     }
+  }
+`;
 
-    const user = res.data.data.user;
-
-    result.id = user.id;
-    result.name = user.name;
-    result.email = user.email;
-    result.joinedAt = user.createdAt;
-    result.totalPublicRepos = user.repositories.totalCount;
-    result.totalStars = user.repositories.nodes.reduce((stars, curr) => {
-        return stars + curr.stargazers.totalCount;
-    }, 0);
-    result.websiteUrl = user.websiteUrl;
-    result.totalIssueContributions = user.issues.totalCount;
-    result.totalPullRequestContributions = user.pullRequests.totalCount;
-    result.totalRepositoryContributions =
-        user.repositoriesContributedTo.totalCount;
-    result.company = user.company;
-    result.location = user.location;
-    result.twitterUsername = user.twitterUsername;
-    result.contributionYears = user.contributionsCollection.contributionYears;
-
-    // contributions into array
-    for (const week of user.contributionsCollection.contributionCalendar
-        .weeks) {
-        for (const day of week.contributionDays) {
-            day.date = new Date(day.date);
-            result.contributions.push(day);
-        }
-    }
-
-    return result;
+export function sumStars(nodes) {
+    return nodes.reduce((acc, n) => acc + (n.stargazerCount || 0), 0);
 }
 
-module.exports = getProfileDetails;
+/*
+    Returns a flat object of headline profile numbers:
+    { repos, stars, followers, commits, pullRequests, issues }
+*/
+export async function getOverview(username, token = process.env.GITHUB_TOKEN) {
+    let cursor = null;
+    let stars = 0;
+    let first = null;
+    for (let page = 0; page < 10; page++) {
+        const data = await graphql(token, QUERY, { login: username, cursor });
+        if (!first) first = data.user;
+        stars += sumStars(data.user.repositories.nodes);
+        const pi = data.user.repositories.pageInfo;
+        if (!pi.hasNextPage) break;
+        cursor = pi.endCursor;
+    }
+    return {
+        repos: first.repositories.totalCount,
+        stars,
+        followers: first.followers.totalCount,
+        commits: first.contributionsCollection.totalCommitContributions,
+        pullRequests: first.pullRequests.totalCount,
+        issues: first.issues.totalCount,
+    };
+}
+
+export default getOverview;

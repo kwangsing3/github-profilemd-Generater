@@ -10,8 +10,9 @@ GitHub Actions 工具，透過 **GitHub GraphQL API** 自動產生個人頁面�
 
 | 檔案 | 說明 |
 |------|------|
-| `langcompos.svg` | 語言組成圓餅圖 |
-| `tagsstat.svg` | 標籤 / 統計資訊卡片 |
+| `overview.svg` | 總覽統計（Stars / Repos / Followers / Commits / PR / Issue） |
+| `langcompos.svg` | 語言組成（依實際程式碼位元組數計算） |
+| `tagsstat.svg` | 標籤 / 主題統計卡片 |
 
 同時產生 `output/README.md` 片段，可直接嵌入你的 Profile README。
 
@@ -50,6 +51,9 @@ on:
   schedule:
     - cron: '0 0 * * 1'   # 每週一自動執行
 
+permissions:
+  contents: write          # 允許 bot 將卡片 commit 回儲存庫
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -61,11 +65,30 @@ jobs:
         with:
           USERNAME: ${{ github.repository_owner }}
           GITHUB_REPO_NAME: ${{ github.event.repository.name }}
+          # 以下皆為選填
+          THEME: 'all'        # 或逗號分隔，如 "nord_dark,dracula"
+          TOP_N: '8'          # 語言 / 標籤顯示數量
+          HIDE: ''            # 排除語言，如 "HTML,CSS"
+          OUTPUT_DIR: 'output'
 ```
+
+> 🔒 **安全建議**：正式環境請將 `@release` 改為釘選 commit SHA（例如 `@<sha>`），並只授予 workflow 必要的 `permissions`。
+
+### 可用輸入參數
+
+| 輸入 | 必填 | 預設 | 說明 |
+|------|:---:|------|------|
+| `USERNAME` | ✅ | repo owner | 要分析的 GitHub 帳號 |
+| `GITHUB_REPO_NAME` | ✅ | 當前 repo | 目標儲存庫名稱 |
+| `THEME` | | `all` | `all` 或逗號分隔的主題清單 |
+| `TOP_N` | | `8` | 每張卡顯示的語言 / 標籤數量 |
+| `HIDE` | | （空） | 逗號分隔、要排除的語言 |
+| `OUTPUT_DIR` | | `output` | 卡片輸出目錄 |
 
 ### 3. 將卡片嵌入 Profile README
 
 ```markdown
+[![overview](./output/github-profilemd-generater/nord_dark/overview.svg)](https://github.com/kwangsing3/github-profilemd-Generater)
 [![lang](./output/github-profilemd-generater/nord_dark/langcompos.svg)](https://github.com/kwangsing3/github-profilemd-Generater)
 [![tags](./output/github-profilemd-generater/nord_dark/tagsstat.svg)](https://github.com/kwangsing3/github-profilemd-Generater)
 ```
@@ -74,11 +97,21 @@ jobs:
 
 ```bash
 npm install
-npx ncc build src/index.js -o dist
+npm run build                 # 以 ncc 打包到 dist/
 node dist/index.js <username> <repo_name> <github_token>
 ```
 
-產生結果寫入 `output/` 目錄。
+產生結果寫入 `OUTPUT_DIR`（預設 `output/`）；本地執行不會自動 git commit。
+
+## 開發
+
+```bash
+npm test          # 執行單元測試（node:test）
+npm run build     # 打包 dist/（提交前務必重新建置）
+```
+
+- 執行環境：**Node.js 24**（GitHub Actions `node24` runtime）。
+- 程式碼為 ESM；`dist/` 由 `@vercel/ncc` 打包後一併提交，CI 會驗證其與源碼同步。
 
 ## 授權
 

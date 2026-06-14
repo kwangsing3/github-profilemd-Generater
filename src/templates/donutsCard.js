@@ -1,5 +1,5 @@
-const Card = require('./card');
-const d3 = require('d3');
+import Card from './card.js';
+import * as d3 from 'd3';
 
 function createDonutChartCard(title, data, theme) {
     const pie = d3.pie().value(function (d) {
@@ -81,4 +81,4 @@ function createDonutChartCard(title, data, theme) {
     return card.toString();
 }
 
-module.exports = createDonutChartCard;
+export default createDonutChartCard;

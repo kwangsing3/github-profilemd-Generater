@@ -1,14 +1,7 @@
-
-function GetCurrentTime() {
-    let ts = Date.now();
-    let date_ob = new Date(ts);
-    let date = date_ob.getUTCDate();
-    let month = date_ob.getUTCMonth() + 1;
-    let year = date_ob.getUTCFullYear();
-    let hour = date_ob.getUTCHours();
-    let minu = date_ob.getUTCMinutes();
-    let sec = date_ob.getUTCSeconds();
-    return "UTC- "+ year + "-" + month + "-" + date + " " + hour +":" + minu +":" + sec;
+/* ISO-8601 UTC timestamp, e.g. "2026-06-14 09:05:21 UTC". */
+export function GetCurrentTime() {
+    const iso = new Date().toISOString();          // 2026-06-14T09:05:21.123Z
+    return iso.slice(0, 19).replace('T', ' ') + ' UTC';
 }
 
-module.exports.GetCurrentTime = GetCurrentTime;
+export default { GetCurrentTime };

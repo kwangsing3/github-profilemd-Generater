@@ -1,27 +1,17 @@
-//- File System write and read-//
-const fs = require('fs');
-const path = require('path');
-const Logger = require('./logger');
-async function WriteFile(targetpath = "", content, log = false) {
-    return new Promise((resolve,reject) =>{
-        fs.promises.mkdir(path.dirname(targetpath), {recursive: true}).then(
-            ()=>{
-                fs.writeFile(targetpath, content, function (err) {
-                    if (err) {
-                        throw err;
-                    }
-                    if (log)
-                    Logger.info(`Genearted ${targetpath}`);
-                    resolve();
-                })
-            }
-        );
-    });
+//- File system read / write helpers -//
+import { promises as fs } from 'fs';
+import path from 'path';
+import Logger from './logger.js';
+
+/* Write a file, creating parent directories as needed. */
+export async function WriteFile(targetPath, content, log = false) {
+    await fs.mkdir(path.dirname(targetPath), { recursive: true });
+    await fs.writeFile(targetPath, content);
+    if (log) Logger.info(`Generated ${targetPath}`);
 }
 
+export async function ReadFile(targetPath) {
+    return fs.readFile(targetPath, 'utf8');
+}
 
-
-
-
-
-module.exports.WriteFile = WriteFile;
+export default { WriteFile, ReadFile };

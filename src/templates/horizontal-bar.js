@@ -1,6 +1,6 @@
-const Card = require('./card');
-const d3 = require('d3');
-const Icons = require('../content/icon');
+import Card from './card.js';
+import * as d3 from 'd3';
+import Icons from '../content/icon.js';
 
 function createHorizontalBarCard(title, data, theme) {
   let width = 600;
@@ -121,4 +121,4 @@ svg.append("g")
   return card.toString();
 }
 
-module.exports = createHorizontalBarCard;
+export default createHorizontalBarCard;

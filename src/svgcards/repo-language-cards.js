@@ -1,81 +1,24 @@
-const G_API_getLangC = require('../githubAPI/language-composition');
-const utils_fs = require('../utils/fswr');
-const createHorizontalbarCard = require('../templates/horizontal-bar');
-const Theme = require('../content/theme');
+import { getLanguageComposition } from '../githubAPI/language-composition.js';
+import createHorizontalbarCard from '../templates/horizontal-bar.js';
+import { writeThemed } from './render.js';
 
-const FetchLanguageData = async function (username) {
-    let langMap = {};
-    try{
-        langMap = await G_API_getLangC(username);
-    }catch(err){
-        throw err;
-    }
-    let langData = [];
+/* Map the aggregated language map into sorted, filtered card rows. */
+export function toLanguageRows(langMap, { hide = [], topN = 8 } = {}) {
+    return Object.entries(langMap)
+        .map(([name, v]) => ({ name, value: v.size, color: v.color }))
+        .filter((d) => !hide.includes(d.name.toLowerCase()))
+        .sort((a, b) => b.value - a.value)
+        .slice(0, topN);
+}
 
-    
-    //Object to array
-    for (let key in langMap) {
-        langData.push({
-            name: key,
-            value: langMap[key]['size'],
-            color: langMap[key]['color'],
-        });
-    }
+export async function generateLangComposCard(config) {
+    const langMap = await getLanguageComposition(config.username, config.token);
+    const rows = toLanguageRows(langMap, config);
+    if (rows.length === 0) return;
+    // horizontal-bar mutates row.value into a percentage, so clone per theme.
+    await writeThemed(config, 'langcompos', (theme) =>
+        createHorizontalbarCard('Repo Composed', rows.map((r) => ({ ...r })), theme)
+    );
+}
 
-
-    langData.sort(function (a, b) {
-        return b.value - a.value;
-    });
-    //langData = langData.slice(0, 5); // get top 5
-    return langData;
-};
-
-const GenerateLangComposCard = async function (username) {
-    let card = {};
-    try{
-        card = await FetchLanguageData(username);
-    }catch(err){
-        throw err;
-    }
-    let ThemeCards = [];
-    for (let element of Theme.values()){
-        let svgString = TOSVG(card, element);
-        ThemeCards.push(svgString);
-    }
-    // Length check before loop
-    if(ThemeCards.length != Theme.size){
-        throw Error("Deadly Error: Length wasn't equl.");
-    }
-    let i = 0;
-    let keys = Theme.keys();
-    for(let key of keys){
-        try{
-            await utils_fs.WriteFile(`./output/github-profilemd-generater/${key}/langcompos.svg`, ThemeCards[i]);
-            i++;
-            if(i > ThemeCards.length)
-                break;
-        }catch(err){
-            throw err;
-        }
-    }
-};
-
-const TOSVG = function (input, theme) {
-    let svgString = {};
-    try{
-        svgString = createHorizontalbarCard(
-            'Repo Composed',
-            input,
-            theme,
-        );
-    }catch(err){
-        throw err;
-    }
-    return svgString;
-};
-
-
-
-
-
-module.exports = GenerateLangComposCard;
+export default generateLangComposCard;

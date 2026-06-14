@@ -1,9 +1,6 @@
 "use strict";
-const util = require("util");
 const { JSDOM } = require("../../../..");
-const { READY_STATES } = require("./xhr-utils");
 const idlUtils = require("../generated/utils");
-const tough = require("tough-cookie");
 
 const dom = new JSDOM();
 const xhr = new dom.window.XMLHttpRequest();
@@ -16,44 +13,24 @@ process.stdin.on("data", chunk => {
 });
 
 process.stdin.on("end", () => {
+  // eslint-disable-next-line no-restricted-globals -- We can't avoid receiving `Buffer`s from `process.stdin`.
   const buffer = Buffer.concat(chunks);
 
-  const flag = JSON.parse(buffer.toString());
-  if (flag.body && flag.body.type === "Buffer" && flag.body.data) {
-    flag.body = Buffer.from(flag.body.data);
-  }
-  if (flag.cookieJar) {
-    flag.cookieJar = tough.CookieJar.fromJSON(flag.cookieJar);
-  }
+  const config = JSON.parse(buffer.toString());
+  xhrImpl._adoptSerializedRequest(config);
 
-  flag.synchronous = false;
-  Object.assign(xhrImpl.flag, flag);
-  const { properties } = xhrImpl;
-  xhrImpl.readyState = READY_STATES.OPENED;
-  try {
-    xhr.addEventListener("loadend", () => {
-      if (properties.error) {
-        properties.error = properties.error.stack || util.inspect(properties.error);
-      }
-      process.stdout.write(JSON.stringify({
-        responseURL: xhrImpl.responseURL,
-        status: xhrImpl.status,
-        statusText: xhrImpl.statusText,
-        properties
-      }), () => {
-        process.exit(0);
-      });
-    }, false);
-    xhr.send(flag.body);
-  } catch (error) {
-    properties.error += error.stack || util.inspect(error);
-    process.stdout.write(JSON.stringify({
-      responseURL: xhrImpl.responseURL,
-      status: xhrImpl.status,
-      statusText: xhrImpl.statusText,
-      properties
-    }), () => {
+  function writeResultAndExit() {
+    process.stdout.write(JSON.stringify(xhrImpl._serializeResponse()), () => {
+      // Exit immediately. The process destruction will handle all connection cleanup.
       process.exit(0);
     });
+  }
+
+  try {
+    xhr.addEventListener("loadend", writeResultAndExit, false);
+    xhr.send(xhrImpl._body);
+  } catch (error) {
+    xhrImpl._error = error;
+    writeResultAndExit();
   }
 });

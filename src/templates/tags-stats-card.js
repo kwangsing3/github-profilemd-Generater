@@ -1,5 +1,5 @@
-const Card = require('./card');
-const Icons = require('../content/icon');
+import Card from './card.js';
+import Icons from '../content/icon.js';
 
 function createStatsCard(title, statsData, theme) {
     let cHeight = statsData.length*38 > 200? statsData.length*38:200;
@@ -76,4 +76,4 @@ function createStatsCard(title, statsData, theme) {
     return card.toString();
 }
 
-module.exports = createStatsCard;
+export default createStatsCard;

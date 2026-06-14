@@ -1,54 +1,67 @@
+import { spawn } from 'child_process';
+import uti_time from './time.js';
+import Logger from './logger.js';
 
-const { spawn } = require('child_process');
-const uti_time = require('./time');
-const Logger = require('./logger');
-const execCmd = (cmd, args = []) => {
-    return new Promise((resolve, reject) => {
+/* Run a command, accumulating stdout/stderr. Never rejects; returns the code. */
+function exec(cmd, args = []) {
+    return new Promise((resolve) => {
         const app = spawn(cmd, args, { stdio: 'pipe' });
         let stdout = '';
-        app.stdout.on('data', (data) => {
-            stdout = data;
-        });
-        app.on('close', (code) => {
-            if (code !== 0 && !stdout.includes('nothing to commit')) {
-                err = new Error(
-                    `${cmd} ${args} \n ${stdout} \n Invalid status code: ${code}`
-                );
-                err.code = code;
-                return reject(err);
-            }
-            return resolve(code);
-        });
-        app.on('error', reject);
-    }).catch((error)=>{
-        throw error;
-    })
+        let stderr = '';
+        app.stdout.on('data', (d) => (stdout += d.toString()));
+        app.stderr.on('data', (d) => (stderr += d.toString()));
+        app.on('error', (err) => resolve({ code: 1, stdout, stderr: String(err) }));
+        app.on('close', (code) => resolve({ code, stdout, stderr }));
+    });
 }
 
-async function CommandANDPush(isAction = false){
-    if (!isAction){
-        /*console.warn("(Ignore git commit)");
-        return;*/
-    }else{
-        await execCmd('git', [
-            'config',
-            '--global',
-            'user.email',
-            'bot@example.com',
-        ]);
-        await execCmd('git', [ 
-            'config',
-            '--global',
-            'user.name',
-            'github-profilemd-Generater[bot]',
-        ]);
+async function run(cmd, args) {
+    const res = await exec(cmd, args);
+    if (res.code !== 0) {
+        throw new Error(
+            `\`${cmd} ${args.join(' ')}\` exited ${res.code}\n${res.stdout}\n${res.stderr}`
+        );
     }
-    
-    await execCmd('git', ['add','-A']);
-    await execCmd('git', ['commit', '-m', ' github-profilemd-Generater[bot] Commited: '+ uti_time.GetCurrentTime()] );
-    await execCmd('git', ['remote','-v']);
-    await execCmd('git', ['push', '-f']);  //to make sure that could be reuse in re-run task.
-    Logger.info("Git push Done!...");
-};
+    return res;
+}
 
-module.exports.CommandANDPush = CommandANDPush;
+/*
+    Stage the output directory and commit + push only when something changed.
+    Returns true if a commit was pushed, false if there was nothing to do.
+*/
+export async function CommandANDPush(outputDir = 'output') {
+    await run('git', ['config', '--global', 'user.email', 'bot@example.com']);
+    await run('git', [
+        'config',
+        '--global',
+        'user.name',
+        'github-profilemd-Generater[bot]',
+    ]);
+
+    await run('git', ['add', '-A', outputDir]);
+
+    // Nothing staged -> skip the commit entirely (no noise commits).
+    const staged = await exec('git', ['diff', '--cached', '--quiet']);
+    if (staged.code === 0) {
+        Logger.info('No card changes detected, skipping commit.');
+        return false;
+    }
+
+    await run('git', [
+        'commit',
+        '-m',
+        `github-profilemd-Generater[bot] update cards: ${uti_time.GetCurrentTime()}`,
+    ]);
+
+    // Push without --force; if the branch moved, rebase once and retry.
+    const push = await exec('git', ['push']);
+    if (push.code !== 0) {
+        Logger.warning('Push rejected, rebasing onto remote and retrying...');
+        await run('git', ['pull', '--rebase']);
+        await run('git', ['push']);
+    }
+    Logger.info('Git push done.');
+    return true;
+}
+
+export default { CommandANDPush };

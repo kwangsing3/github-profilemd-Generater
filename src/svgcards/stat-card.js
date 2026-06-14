@@ -1,83 +1,31 @@
-const G_API_gettagsS = require('../githubAPI/tags-stat');
-const utils_fs = require('../utils/fswr');
+import { getTagsStat } from '../githubAPI/tags-stat.js';
+import createStatCard from '../templates/tags-stats-card.js';
+import Icons from '../content/icon.js';
+import { writeThemed } from './render.js';
 
-const createStatCard = require('../templates/tags-stats-card');
-const Theme = require('../content/theme');
-const icon = require('../content/icon');
+const cap = (s) => String(s).charAt(0).toUpperCase() + String(s).slice(1);
 
-const FetchTagsData = async function (username) {
-    let dataMap = {};
-    try{
-        dataMap = await G_API_gettagsS(username);
-    }catch(err){
-        throw err;
-    }
-    let dataArr = [];
-    
-    //Object to array
-    for (let key in dataMap) {
-        dataArr.push({
-            name: String(key).charAt(0).toUpperCase() + String(key).slice(1),
-            value: dataMap[key],
-            icon: icon.TAG,
+/* Map the topic-count map into sorted, indexed card rows. */
+export function toTagRows(tagMap, { topN = 6 } = {}) {
+    return Object.entries(tagMap)
+        .map(([name, value]) => ({
+            name: cap(name),
+            value,
+            icon: Icons.TAG,
             color: 'white',
-        });
-    }
-    dataArr.sort(function (a, b) {
-        return b.value - a.value;
-    });
-    let index = 0;
-    for (let key in dataArr) {
-        dataArr[key]['index'] = index;
-        index++;
-    }
+        }))
+        .sort((a, b) => b.value - a.value)
+        .slice(0, topN)
+        .map((row, index) => ({ ...row, index }));
+}
 
-    //Get limit: 7
-    dataArr = dataArr.slice(0,6);
-    return dataArr;
-};
-
-const GenerateTagsStatCard = async function (username) {
-    let card = {};
-    try{
-        card = await FetchTagsData(username);
-    }catch(err){
-        throw err;
-    }
-    let ThemeCards = [];
-    for (let element of Theme.values()){
-        let svgString = TOSVG(card, element);
-        ThemeCards.push(svgString);
-    }
-    // Length check before loop
-    if(ThemeCards.length != Theme.size){
-        throw Error("Deadly Error: Length wasn't equl.");
-    }
-    let i = 0;
-    let keys = Theme.keys();
-    for(let key of keys){
-        try{
-            await utils_fs.WriteFile(`./output/github-profilemd-generater/${key}/tagsstat.svg`, ThemeCards[i]);
-            i++;
-            if(i > ThemeCards.length)
-                break;
-        }catch(err){
-            throw err;
-        }
-    }
-};
-
-const TOSVG = function (input, theme) {
-    const svgString = createStatCard(
-        'Topics Perfer:',
-        input,
-        theme,
+export async function generateTagsStatCard(config) {
+    const tagMap = await getTagsStat(config.username, config.token);
+    const rows = toTagRows(tagMap, config);
+    if (rows.length === 0) return;
+    await writeThemed(config, 'tagsstat', (theme) =>
+        createStatCard('Topics Perfer:', rows, theme)
     );
-    return svgString;
-};
+}
 
-
-
-
-
-module.exports = GenerateTagsStatCard;
+export default generateTagsStatCard;

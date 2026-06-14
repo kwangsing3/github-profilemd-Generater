@@ -1,86 +1,54 @@
-const request = require('../utils/rest');
+import { graphql } from '../utils/rest.js';
 
-const fetcher = (token, variables) => {
-    return request(
-        {
-            Authorization: `bearer ${token}`,
-        },
-        {
-            query: `
-                  query LanguageCompositionQuery($login: String!) {
-                    user(login: $login) {
-                      repositories(isFork: false, first: 100) {
-                        nodes {
-                          primaryLanguage {
-                            name
-                            color
-                          }
-                        }
-                      }
-                    }
-                  }
-            `,
-            variables,
-        }
-    );
-};
-
-// repos per language
-async function getCommitLanguage(username) {
-    let res = {};
-    try{
-        res = await fetcher(process.env.GITHUB_TOKEN, {
-            login: username,
-        });
-    }catch(err){
-        throw err;
-    }
-
-    if (res.data.errors) {
-        throw Error(res.data.errors[0].message || 'GetCommitLanguage failed');
-    }
-
-    let json = JSON.stringify(res.data.data);
-    json = JSON.parse(json);
-
-    /*
-    {
-        user:{
-            repositories:{
-                edges:[
-                    {
-                        node:{
-                            name:"",
-                            primaryLanguage:{
-                                "color": "",
-                                "name": "",
-                            },
-                        }
-                    },
-                    ...
-                ]
+const QUERY = `
+  query LanguageComposition($login: String!, $cursor: String) {
+    user(login: $login) {
+      repositories(isFork: false, ownerAffiliations: OWNER, first: 100, after: $cursor) {
+        pageInfo { hasNextPage endCursor }
+        nodes {
+          languages(first: 10, orderBy: { field: SIZE, direction: DESC }) {
+            edges {
+              size
+              node { name color }
             }
+          }
         }
+      }
     }
-    */
-    let result = {};
-    let arry = json['user']['repositories']['nodes'];
-    for (let index in arry){
-        if( arry[index]['primaryLanguage'] == null)
-            continue;
-        let lang_name = arry[index]['primaryLanguage']['name'];
-        let lang_color = arry[index]['primaryLanguage']['color'];
-        if(result.hasOwnProperty(lang_name)){
-            result[lang_name]['size'] += 1;
-        }else{
-            result[lang_name] = {
-                color: lang_color ? lang_color : '#586e75',
-                size: 1,
-            };
-        }
-    }
+  }
+`;
 
+/*
+    Aggregate real language byte sizes across a list of repository nodes.
+    Returns { [language]: { size, color } } where size is total bytes.
+*/
+export function parseLanguages(nodes) {
+    const result = {};
+    for (const repo of nodes) {
+        const edges = repo?.languages?.edges || [];
+        for (const edge of edges) {
+            const name = edge.node.name;
+            const color = edge.node.color || '#586e75';
+            if (!result[name]) result[name] = { color, size: 0 };
+            result[name].size += edge.size;
+        }
+    }
     return result;
 }
 
-module.exports = getCommitLanguage;
+/* Fetch every owned, non-fork repository (paginated) and aggregate languages. */
+export async function getLanguageComposition(username, token = process.env.GITHUB_TOKEN) {
+    let cursor = null;
+    let nodes = [];
+    // Cap at 10 pages (1000 repos) as a safety valve.
+    for (let page = 0; page < 10; page++) {
+        const data = await graphql(token, QUERY, { login: username, cursor });
+        const repos = data.user.repositories;
+        nodes = nodes.concat(repos.nodes);
+        if (!repos.pageInfo.hasNextPage) break;
+        cursor = repos.pageInfo.endCursor;
+    }
+    return parseLanguages(nodes);
+}
+
+export default getLanguageComposition;
